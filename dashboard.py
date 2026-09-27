@@ -218,25 +218,30 @@ def inject_css():
             margin-bottom: 12px;
         }}
 
-        /* LINHA DE EMBLEMAS/CHIPS COMPACTA NA MESMA LINHA */
+        /* LINHA DE EMBLEMAS/CHIPS COMPACTA E OBRIGATORIAMENTE EM 1 LINHA */
         .chips-inline-container {{
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: row;
+            flex-wrap: nowrap;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             margin-top: 10px;
+            width: 100%;
+            overflow-x: auto;
         }}
 
-        /* CHIPS ESTILIZADOS COMO NA IMAGEM 3 */
+        /* CHIPS OTIMIZADOS E COMPACTOS PARA ARRASTAR/CABER NO MOBILE */
         .chip {{
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.82rem;
+            justify-content: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 16px;
+            font-size: 0.74rem;
             font-weight: 700;
             white-space: nowrap;
+            flex-shrink: 0;
         }}
         .chip-blue {{ background: #EBF3FA; color: {BLUE}; border: 1px solid rgba(29, 95, 166, 0.15); }}
         .chip-amber {{ background: #FEF3D6; color: #B47818; border: 1px solid rgba(240, 166, 41, 0.25); }}
@@ -692,7 +697,7 @@ selected = option_menu(
 )
 
 # ==========================================
-# ABA 1: LIDERANÇA (RETORNADO AO PADRÃO DA IMAGEM 2)
+# ABA 1: LIDERANÇA
 # ==========================================
 if selected == "Liderança":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -721,7 +726,6 @@ if selected == "Liderança":
             total_ind = row['Total']
             pct = (total_ind / total_cadastros * 100) if total_cadastros else 0
 
-            # Card Estilizado Visualmente (Padrão Imagem 2)
             st.markdown(
                 f"""
                 <div class="custom-card">
@@ -743,7 +747,6 @@ if selected == "Liderança":
                 unsafe_allow_html=True,
             )
 
-            # Expander do Streamlit com texto simples para evitar erro
             with st.expander(f"👥 Ver {total_ind} pessoas indicadas por {lider_nome}"):
                 indicados = df_clean_lider[df_clean_lider["LIDER_PADRAO"] == row['Líder']]
                 for _, r in indicados.iterrows():
@@ -754,7 +757,7 @@ if selected == "Liderança":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 2: BAIRROS (ALINHADOS APOIADOR, LÍDER E VEÍCULOS NA MESMA LINHA)
+# ABA 2: BAIRROS (CORRIGIDO ALINHAMENTO PERFEITO EM 1 LINHA)
 # ==========================================
 if selected == "Bairros":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -804,24 +807,22 @@ if selected == "Bairros":
             vol_lideres = info_bairro["Lideres_Distintos"].values[0] if not info_bairro.empty else 0
             vol_veiculos = info_bairro["Veiculos"].values[0] if not info_bairro.empty else 0
 
-            # Card Estilizado com os chips na MESMA LINHA para diminuir o tamanho do card
             st.markdown(
                 f"""
                 <div class="custom-card">
-                    <div style="font-size: 1.15rem; font-weight: 800; color: #071A2D; display: flex; align-items: center; gap: 6px;">
+                    <div style="font-size: 1.1rem; font-weight: 800; color: #071A2D; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
                         📍 {safe_title(b)}
                     </div>
                     <div class="chips-inline-container">
-                        <span class="chip chip-blue">👥 {vol_apoiadores} Apoiador(es)</span>
-                        <span class="chip chip-amber">⭐ {vol_lideres} Líder(es)</span>
-                        <span class="chip chip-green">🚗 {vol_veiculos} Veículo(s)</span>
+                        <span class="chip chip-blue">👥 {vol_apoiadores} Apoiador</span>
+                        <span class="chip chip-amber">⭐ {vol_lideres} Líder</span>
+                        <span class="chip chip-green">🚗 {vol_veiculos} Veículo</span>
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
-            # Expander do Streamlit limpo abaixo do card
             with st.expander(f"📋 Ver lista de moradores cadastrados em {safe_title(b)}"):
                 for _, r in sub_df.iterrows():
                     render_person_card(r, exibir_dados_sensiveis)
@@ -928,7 +929,7 @@ if selected == "Perfil Demográfico":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 5: RELATÓRIOS & EXPORTAÇÃO (EXCEL & CSV)
+# ABA 5: RELATÓRIOS & EXPORTAÇÃO
 # ==========================================
 if selected == "Relatórios":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -967,7 +968,6 @@ if selected == "Relatórios":
 
     col_e1, col_e2 = st.columns(2)
 
-    # EXPORTAÇÃO EXCEL (.XLSX) VIA OPENPYXL
     buffer_excel = io.BytesIO()
     with pd.ExcelWriter(buffer_excel, engine="openpyxl") as writer:
         df_export_final.to_excel(writer, index=False, sheet_name="Apoiadores")
@@ -982,7 +982,6 @@ if selected == "Relatórios":
             use_container_width=True,
         )
 
-    # EXPORTAÇÃO CSV PADRÃO UTF-8
     csv_data = df_export_final.to_csv(index=False).encode("utf-8-sig")
     with col_e2:
         st.download_button(

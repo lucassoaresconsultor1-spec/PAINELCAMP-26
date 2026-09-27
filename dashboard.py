@@ -2,7 +2,13 @@ import io
 import math
 import re
 from datetime import date, datetime
-from zoneinfo import ZoneInfo
+import sys
+
+# Tratamento para zoneinfo (garante compatibilidade no Windows/Linux)
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -37,6 +43,7 @@ BORDER = "#E6EBF2"
 PLOTLY_FONT = "Manrope, sans-serif"
 SENHA_PADRAO = "Araruama321@"
 DATA_ELEICAO = date(2026, 10, 4)
+FUSO_SP = ZoneInfo("America/Sao_Paulo")
 
 
 def inject_css():
@@ -538,7 +545,7 @@ def carregar_dados():
     if "TIMESTAMP_PADRAO" in df.columns:
         df["Timestamp_DT"] = pd.to_datetime(df["TIMESTAMP_PADRAO"], dayfirst=True, errors="coerce")
 
-    hoje_data = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
+    hoje_data_sp = datetime.now(FUSO_SP).date()
     if "NASCIMENTO_PADRAO" in df.columns:
         df["Data_Nasc_DT"] = pd.to_datetime(df["NASCIMENTO_PADRAO"], dayfirst=True, errors="coerce")
 
@@ -546,7 +553,7 @@ def carregar_dados():
             if pd.isna(nasc):
                 return np.nan
             nasc = nasc.date()
-            idade = hoje_data.year - nasc.year - ((hoje_data.month, hoje_data.day) < (nasc.month, nasc.day))
+            idade = hoje_data_sp.year - nasc.year - ((hoje_data_sp.month, hoje_data_sp.day) < (nasc.month, nasc.day))
             return idade if 0 <= idade <= 120 else np.nan
 
         df["Idade"] = df["Data_Nasc_DT"].apply(calcular_idade)
@@ -694,11 +701,11 @@ else:
     df_veiculos_filtro = pd.DataFrame()
 
 total_cadastros = len(df)
-lideres_ativos = df["LIDER_PADRAO"].replace("NAN", np.nan).dropna().nunique() if "LIDER_PADRAO" in df.columns else 0
-bairros_cobertos = df["BAIRRO_PADRAO"].replace("NAN", np.nan).dropna().nunique() if "BAIRRO_PADRAO" in df.columns else 0
+lideres_ativos = df["LIDER_PADRAO"].replace(["NAN", "NONE", "NAO", "NÃO", ""], np.nan).dropna().nunique() if "LIDER_PADRAO" in df.columns else 0
+bairros_cobertos = df["BAIRRO_PADRAO"].replace(["NAN", "NONE", "NAO", "NÃO", ""], np.nan).dropna().nunique() if "BAIRRO_PADRAO" in df.columns else 0
 veiculos_mapeados = len(df_veiculos_filtro)
 
-hoje_sp = datetime.now(ZoneInfo("America/Sao_Paulo"))
+hoje_sp = datetime.now(FUSO_SP)
 hoje_data = hoje_sp.date()
 dias_restantes = (DATA_ELEICAO - hoje_data).days
 
@@ -780,6 +787,11 @@ if selected == "Liderança":
 
     if "LIDER_PADRAO" in df.columns and not df.empty:
         df_clean_lider = df[~df["LIDER_PADRAO"].isin(["NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"])]
+        
+        col_search_lider, col_pag = st.columns([1, 1])
+        with col_search_lider:
+            busca_lider = st.text_input("Buscar líder pelo nome", placeholder="Digite o nome do líder...")
+        
         df_lideres = (
             df_clean_lider["LIDER_PADRAO"].value_counts().reset_index()
             .rename(columns={"LIDER_PADRAO": "Líder", "count": "Total"})
@@ -787,65 +799,73 @@ if selected == "Liderança":
             .reset_index(drop=True)
         )
 
+        if busca_lider:
+            df_lideres = df_lideres[df_lideres["Líder"].str.contains(busca_lider.upper(), na=False)].reset_index(drop=True)
+
         ITENS_POR_PAGINA = 20
         total_lideres = len(df_lideres)
         total_paginas = math.ceil(total_lideres / ITENS_POR_PAGINA) if total_lideres > 0 else 1
 
-        col_pag, _ = st.columns([2, 1])
         with col_pag:
-            pagina_atual = st.selectbox(
-                "Navegação de Páginas:",
-                options=list(range(1, total_paginas + 1)),
-                format_func=lambda x: f"Página {x} de {total_paginas} ({((x-1)*ITENS_POR_PAGINA)+1} a {min(x*ITENS_POR_PAGINA, total_lideres)} de {total_lideres} líderes)"
-            )
-
-        idx_inicio = (pagina_atual - 1) * ITENS_POR_PAGINA
-        idx_fim = idx_inicio + ITENS_POR_PAGINA
-        df_pagina_lideres = df_lideres.iloc[idx_inicio:idx_fim]
-
-        for i, row in df_pagina_lideres.iterrows():
-            posicao = i + 1
-            lider_nome = safe_title(row['Líder'])
-            total_ind = row['Total']
-            pct = (total_ind / total_cadastros * 100) if total_cadastros else 0
-
-            if posicao == 1:
-                badge = "🥇"
-            elif posicao == 2:
-                badge = "🥈"
-            elif posicao == 3:
-                badge = "🥉"
+            if total_lideres > 0:
+                pagina_atual = st.selectbox(
+                    "Navegação de Páginas:",
+                    options=list(range(1, total_paginas + 1)),
+                    format_func=lambda x: f"Página {x} de {total_paginas} ({((x-1)*ITENS_POR_PAGINA)+1} a {min(x*ITENS_POR_PAGINA, total_lideres)} de {total_lideres} líderes)"
+                )
             else:
-                badge = f"{posicao}"
+                pagina_atual = 1
 
-            st.markdown(
-                f"""
-                <div class="lider-card-compact">
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="rank-badge">{badge}</div>
-                            <div>
-                                <div style="font-size: 0.95rem; font-weight: 800; color: #071A2D;">{lider_nome}</div>
-                                <div style="font-size: 0.75rem; font-weight: 600; color: #728096;">{pct:.1f}% da base total</div>
+        if total_lideres > 0:
+            idx_inicio = (pagina_atual - 1) * ITENS_POR_PAGINA
+            idx_fim = idx_inicio + ITENS_POR_PAGINA
+            df_pagina_lideres = df_lideres.iloc[idx_inicio:idx_fim]
+
+            for i, row in df_pagina_lideres.iterrows():
+                posicao = idx_inicio + i + 1
+                lider_nome = safe_title(row['Líder'])
+                total_ind = row['Total']
+                pct = (total_ind / total_cadastros * 100) if total_cadastros else 0
+
+                if posicao == 1:
+                    badge = "🥇"
+                elif posicao == 2:
+                    badge = "🥈"
+                elif posicao == 3:
+                    badge = "🥉"
+                else:
+                    badge = f"{posicao}"
+
+                st.markdown(
+                    f"""
+                    <div class="lider-card-compact">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="rank-badge">{badge}</div>
+                                <div>
+                                    <div style="font-size: 0.95rem; font-weight: 800; color: #071A2D;">{lider_nome}</div>
+                                    <div style="font-size: 0.75rem; font-weight: 600; color: #728096;">{pct:.1f}% da base total</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.25rem; font-weight: 800; color: #071A2D;">{total_ind}</div>
+                                <div style="font-size: 0.68rem; font-weight: 700; color: #728096; text-transform: uppercase;">Indicados</div>
                             </div>
                         </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 1.25rem; font-weight: 800; color: #071A2D;">{total_ind}</div>
-                            <div style="font-size: 0.68rem; font-weight: 700; color: #728096; text-transform: uppercase;">Indicados</div>
+                        <div class="custom-progress-bg" style="margin-top: 8px;">
+                            <div class="custom-progress-fill" style="width: {min(100, pct*2)}%;"></div>
                         </div>
                     </div>
-                    <div class="custom-progress-bg" style="margin-top: 8px;">
-                        <div class="custom-progress-fill" style="width: {min(100, pct*2)}%;"></div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                    """,
+                    unsafe_allow_html=True,
+                )
 
-            with st.expander(f"👥 Ver {total_ind} pessoas indicadas por {lider_nome}"):
-                indicados = df_clean_lider[df_clean_lider["LIDER_PADRAO"] == row['Líder']]
-                for _, r in indicados.iterrows():
-                    render_person_card(r, exibir_dados_sensiveis)
+                with st.expander(f"👥 Ver {total_ind} pessoas indicadas por {lider_nome}"):
+                    indicados = df_clean_lider[df_clean_lider["LIDER_PADRAO"] == row['Líder']]
+                    for _, r in indicados.iterrows():
+                        render_person_card(r, exibir_dados_sensiveis)
+        else:
+            st.info("Nenhuma liderança encontrada com os filtros aplicados.")
 
     else:
         st.info("Nenhum dado de liderança encontrado na planilha.")
@@ -962,7 +982,7 @@ if selected == "Bairros":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 3: VEÍCULOS (COMPACTO & WHATSAPP AO LADO DIREITO)
+# ABA 3: VEÍCULOS
 # ==========================================
 if selected == "Veículos":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)

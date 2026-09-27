@@ -421,13 +421,13 @@ def inject_css():
 
 
 # =====================================================================
-# 3. MASCARAMENTO DE DADOS SENSÍVEIS (CPF E TÍTULO)
+# 3. TRATAMENTO E MASCARAMENTO DE DADOS SENSÍVEIS (CPF E TÍTULO)
 # =====================================================================
 def safe_title(text):
     if pd.isna(text) or text is None:
         return ""
     txt = str(text).strip()
-    if txt.upper() in ["NAN", "NONE", "NAO", "NÃO", "NAO POSSUI", "NÃO POSSUI", "NENHUM", "NEHUM", "", "0", "-"]:
+    if txt.upper() in ["NAN", "NONE", "NAO", "NÃO", "NAO POSSUI", "NÃO POSSUI", "NENHUM", "NEHUM", "", "0", "-", "NÃO INFORMADO"]:
         return ""
     return txt.title()
 
@@ -701,8 +701,8 @@ else:
     df_veiculos_filtro = pd.DataFrame()
 
 total_cadastros = len(df)
-lideres_ativos = df["LIDER_PADRAO"].replace(["NAN", "NONE", "NAO", "NÃO", ""], np.nan).dropna().nunique() if "LIDER_PADRAO" in df.columns else 0
-bairros_cobertos = df["BAIRRO_PADRAO"].replace(["NAN", "NONE", "NAO", "NÃO", ""], np.nan).dropna().nunique() if "BAIRRO_PADRAO" in df.columns else 0
+lideres_ativos = df["LIDER_PADRAO"].replace(["NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"], np.nan).dropna().nunique() if "LIDER_PADRAO" in df.columns else 0
+bairros_cobertos = df["BAIRRO_PADRAO"].replace(["NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"], np.nan).dropna().nunique() if "BAIRRO_PADRAO" in df.columns else 0
 veiculos_mapeados = len(df_veiculos_filtro)
 
 hoje_sp = datetime.now(FUSO_SP)
@@ -887,13 +887,13 @@ if selected == "Bairros":
     )
 
     if "BAIRRO_PADRAO" in df.columns:
-        df_bairros_validos = df[~df["BAIRRO_PADRAO"].isin(["NAN", "NONE", "NAO", "NÃO", ""])]
+        df_bairros_validos = df[~df["BAIRRO_PADRAO"].isin(["NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"])]
 
         bairros_summary = (
             df_bairros_validos.groupby("BAIRRO_PADRAO")
             .agg(
                 Total_Apoiadores=("BAIRRO_PADRAO", "count"),
-                Lideres_Distintos=("LIDER_PADRAO", lambda x: len(set(x.dropna()) - {"NAN", "NONE", "NAO", "NÃO", ""})),
+                Lideres_Distintos=("LIDER_PADRAO", lambda x: len(set(x.dropna()) - {"NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"})),
                 Veiculos=("VEICULO_INFO_PADRAO", lambda x: len([v for v in x if veiculo_valido(v)])),
             )
             .reset_index()
@@ -1093,6 +1093,34 @@ if selected == "Relatórios":
 
     df_export = df.copy()
 
+    # -------------------------------------------------------------
+    # IMPLEMENTAÇÃO: TRATAMENTO DE TEXTO E ORDENAÇÃO POR LIDERANÇA
+    # -------------------------------------------------------------
+    # 1. Tratamento e Sanitização dos Campos de Texto
+    cols_para_formatar = {
+        "NOME_PADRAO": "NOME_PADRAO",
+        "LIDER_PADRAO": "LIDER_PADRAO",
+        "BAIRRO_PADRAO": "BAIRRO_PADRAO",
+        "MAE_PADRAO": "MAE_PADRAO",
+        "LOCAL_VOTACAO_PADRAO": "LOCAL_VOTACAO_PADRAO"
+    }
+    for col_key in cols_para_formatar:
+        if col_key in df_export.columns:
+            df_export[col_key] = df_export[col_key].apply(safe_title)
+
+    # 2. Ordenação por Líder com Mais Apoiadores (Decrescente)
+    if "LIDER_PADRAO" in df_export.columns:
+        # Conta a quantidade total por liderança
+        contagem_lideres = df_export["LIDER_PADRAO"].value_counts()
+        df_export["TOTAL_LIDER"] = df_export["LIDER_PADRAO"].map(contagem_lideres).fillna(0)
+        
+        # Ordena: 1º pelo volume total do líder (decrescente), 2º pelo nome do líder e 3º pelo nome do apoiador
+        df_export = df_export.sort_values(
+            by=["TOTAL_LIDER", "LIDER_PADRAO", "NOME_PADRAO"],
+            ascending=[False, True, True]
+        ).drop(columns=["TOTAL_LIDER"])
+
+    # 3. Tratamento dos dados sensíveis
     if not exibir_dados_sensiveis:
         if "CPF_PADRAO" in df_export.columns:
             df_export["CPF_PADRAO"] = df_export["CPF_PADRAO"].apply(mask_cpf)
@@ -1118,14 +1146,14 @@ if selected == "Relatórios":
 
     buffer_excel = io.BytesIO()
     with pd.ExcelWriter(buffer_excel, engine="openpyxl") as writer:
-        df_export_final.to_excel(writer, index=False, sheet_name="Apoiadores")
+        df_export_final.to_excel(writer, index=False, sheet_name="Apoiadores Por Lideranca")
     excel_data = buffer_excel.getvalue()
 
     with col_e1:
         st.download_button(
             label="📊 Baixar Relatório em Excel (.xlsx)",
             data=excel_data,
-            file_name=f"Relatorio_Campanha_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            file_name=f"Relatorio_Apoiadores_Por_Lider_{datetime.now().strftime('%Y%m%d')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
         )
@@ -1135,12 +1163,12 @@ if selected == "Relatórios":
         st.download_button(
             label="📄 Baixar Relatório em CSV",
             data=csv_data,
-            file_name=f"Relatorio_Campanha_{datetime.now().strftime('%Y%m%d')}.csv",
+            file_name=f"Relatorio_Apoiadores_Por_Lider_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv",
             use_container_width=True,
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<h4 style='font-size:0.95rem; font-weight:800; color:#071A2D;'>Pré-visualização da Tabela de Exportação:</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='font-size:0.95rem; font-weight:800; color:#071A2D;'>Pré-visualização da Tabela de Exportação (Ordenada por Liderança):</h4>", unsafe_allow_html=True)
     st.dataframe(df_export_final, use_container_width=True, hide_index=True)
     st.markdown('</div>', unsafe_allow_html=True)

@@ -538,7 +538,7 @@ def carregar_dados():
     if "TIMESTAMP_PADRAO" in df.columns:
         df["Timestamp_DT"] = pd.to_datetime(df["TIMESTAMP_PADRAO"], dayfirst=True, errors="coerce")
 
-    hoje = date.today()
+    hoje_data = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
     if "NASCIMENTO_PADRAO" in df.columns:
         df["Data_Nasc_DT"] = pd.to_datetime(df["NASCIMENTO_PADRAO"], dayfirst=True, errors="coerce")
 
@@ -546,7 +546,7 @@ def carregar_dados():
             if pd.isna(nasc):
                 return np.nan
             nasc = nasc.date()
-            idade = hoje.year - nasc.year - ((hoje.month, hoje.day) < (nasc.month, nasc.day))
+            idade = hoje_data.year - nasc.year - ((hoje_data.month, hoje_data.day) < (nasc.month, nasc.day))
             return idade if 0 <= idade <= 120 else np.nan
 
         df["Idade"] = df["Data_Nasc_DT"].apply(calcular_idade)
@@ -698,10 +698,18 @@ lideres_ativos = df["LIDER_PADRAO"].replace("NAN", np.nan).dropna().nunique() if
 bairros_cobertos = df["BAIRRO_PADRAO"].replace("NAN", np.nan).dropna().nunique() if "BAIRRO_PADRAO" in df.columns else 0
 veiculos_mapeados = len(df_veiculos_filtro)
 
-hoje = date.today()
-dias_restantes = (DATA_ELEICAO - hoje).days
-texto_dias = f"Faltam <b>{dias_restantes} dias</b> para as eleições." if dias_restantes > 1 else "É HOJE! Dia da Eleição! 🗳️"
-agora = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y às %H:%M")
+hoje_sp = datetime.now(ZoneInfo("America/Sao_Paulo"))
+hoje_data = hoje_sp.date()
+dias_restantes = (DATA_ELEICAO - hoje_data).days
+
+if dias_restantes > 1:
+    texto_dias = f"Faltam <b>{dias_restantes} dias</b> para as eleições."
+elif dias_restantes == 1:
+    texto_dias = "Falta <b>1 dia</b> para as eleições!"
+else:
+    texto_dias = "É HOJE! Dia da Eleição! 🗳️"
+
+agora = hoje_sp.strftime("%d/%m/%Y às %H:%M")
 
 # HERO BANNER
 st.markdown(

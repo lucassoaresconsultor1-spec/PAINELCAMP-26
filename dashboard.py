@@ -208,72 +208,33 @@ def inject_css():
             font-weight: 500;
         }}
 
-        /* CARDS ESTILIZADOS PARA LÍDERES E BAIRROS */
-        .lider-card {{
-            background: {CARD};
-            border: 1px solid {BORDER};
-            border-radius: 16px;
-            padding: 16px 20px;
-            margin-top: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        /* ESTILIZAÇÃO CUSTOMIZADA DO EXPANDER PARA CARDS UNIFICADOS */
+        div[data-testid="stExpander"] {{
+            background: {CARD} !important;
+            border: 1px solid {BORDER} !important;
+            border-radius: 16px !important;
+            margin-bottom: 12px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+            overflow: hidden !important;
         }}
-        .lider-header {{
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
+        div[data-testid="stExpander"] details summary {{
+            padding: 12px 16px !important;
+            border-radius: 16px !important;
         }}
-        .lider-title {{
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: {NAVY};
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }}
-        .lider-total {{
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: {NAVY};
+        div[data-testid="stExpander"] details summary:hover {{
+            background-color: #F8FAFC !important;
         }}
 
-        .progress-bg {{
-            background: #EBF1F7;
-            border-radius: 10px;
-            height: 10px;
+        .lider-expander-wrap {{
             width: 100%;
-            overflow: hidden;
-            margin-bottom: 6px;
         }}
-        .progress-fill {{
-            background: linear-gradient(90deg, {AMBER} 0%, #D9822B 100%);
-            height: 100%;
-            border-radius: 10px;
-        }}
-        .progress-text {{
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: {MUTED};
-            text-align: right;
-        }}
-
-        /* CARD DE BAIRRO RESTRUTURADO COMPACTO */
-        .bairro-card {{
-            background: {CARD};
-            border: 1px solid {BORDER};
-            border-radius: 16px;
-            padding: 14px 18px;
-            margin-top: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-        }}
-        .bairro-top-row {{
+        .lider-header-row {{
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
+            width: 100%;
         }}
-        .bairro-name-title {{
+        .lider-name-title {{
             font-size: 1.05rem;
             font-weight: 800;
             color: {NAVY};
@@ -281,11 +242,41 @@ def inject_css():
             align-items: center;
             gap: 8px;
         }}
-        .bairro-chips-inline {{
+        .lider-val-total {{
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: {NAVY};
+        }}
+
+        .progress-bg-inline {{
+            background: #EBF1F7;
+            border-radius: 8px;
+            height: 8px;
+            width: 100%;
+            overflow: hidden;
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }}
+        .progress-fill-inline {{
+            background: linear-gradient(90deg, {AMBER} 0%, #D9822B 100%);
+            height: 100%;
+            border-radius: 8px;
+        }}
+        .progress-text-inline {{
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: {MUTED};
+            text-align: right;
+        }}
+
+        /* CARDS DE BAIRRO NO EXPANDER */
+        .bairro-top-inline {{
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
+            width: 100%;
             flex-wrap: wrap;
+            gap: 8px;
         }}
 
         .chip {{
@@ -738,7 +729,7 @@ selected = option_menu(
 )
 
 # ==========================================
-# ABA 1: LIDERANÇA (RESTAUROU BARRA E CARD BONITO)
+# ABA 1: LIDERANÇA (CARD ÚNICO E CLICÁVEL COM BARRA DE PROGRESSO)
 # ==========================================
 if selected == "Liderança":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -746,7 +737,7 @@ if selected == "Liderança":
         '''
         <div class="section-header-wrap">
             <div class="section-title">🏆 Leaderboard de Lideranças</div>
-            <div class="section-subtitle">Ranking de captação de eleitores. Expanda o card para ver os indicados.</div>
+            <div class="section-subtitle">Clique em qualquer card de líder para expandir a lista de indicados.</div>
         </div>
         ''',
         unsafe_allow_html=True,
@@ -768,25 +759,21 @@ if selected == "Liderança":
             total_ind = row['Total']
             pct = (total_ind / total_cadastros * 100) if total_cadastros else 0
 
-            # CARD COMPLETO COM BARRA DE PROGRESSO RESTAURADA
-            st.markdown(
-                f"""
-                <div class="lider-card">
-                    <div class="lider-header">
-                        <div class="lider-title"><span>{medalha}</span> {lider_nome}</div>
-                        <div class="lider-total">{total_ind}</div>
-                    </div>
-                    <div class="progress-bg">
-                        <div class="progress-fill" style="width: {pct:.1f}%;"></div>
-                    </div>
-                    <div class="progress-text">{pct:.1f}% da base total</div>
+            # VISUAL EMBUTIDO DIRETO NO HEADER DO EXPANDER
+            expander_header = f"""
+            <div class="lider-expander-wrap">
+                <div class="lider-header-row">
+                    <div class="lider-name-title"><span>{medalha}</span> <b>{lider_nome}</b></div>
+                    <div class="lider-val-total"><b>{total_ind}</b></div>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                <div class="progress-bg-inline">
+                    <div class="progress-fill-inline" style="width: {pct:.1f}%;"></div>
+                </div>
+                <div class="progress-text-inline">{pct:.1f}% da base total</div>
+            </div>
+            """
 
-            # EXPANDER DE INDICADOS
-            with st.expander(f"👥 Ver {total_ind} pessoa(s) indicada(s) por {lider_nome}"):
+            with st.expander(expander_header):
                 indicados = df_clean_lider[df_clean_lider["LIDER_PADRAO"] == row['Líder']]
                 for _, r in indicados.iterrows():
                     render_person_card(r, exibir_dados_sensiveis)
@@ -795,7 +782,7 @@ if selected == "Liderança":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 2: BAIRROS (RESTAUROU CARD COM PÍLULAS BONITAS)
+# ABA 2: BAIRROS (CARD ÚNICO E CLICÁVEL COM PÍLULAS INLINE)
 # ==========================================
 if selected == "Bairros":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -803,7 +790,7 @@ if selected == "Bairros":
         '''
         <div class="section-header-wrap">
             <div class="section-title">📍 Cobertura por Bairro</div>
-            <div class="section-subtitle">Bairros ordenados por volume de cadastros</div>
+            <div class="section-subtitle">Bairros ordenados por volume de cadastros. Clique no card para expandir.</div>
         </div>
         ''',
         unsafe_allow_html=True,
@@ -845,24 +832,19 @@ if selected == "Bairros":
             vol_lideres = info_bairro["Lideres_Distintos"].values[0] if not info_bairro.empty else 0
             vol_veiculos = info_bairro["Veiculos"].values[0] if not info_bairro.empty else 0
 
-            # CARD ESTILIZADO DE BAIRRO COM PÍLULAS/CHIPS E EXPANDER EMBUTIDO
-            st.markdown(
-                f"""
-                <div class="bairro-card">
-                    <div class="bairro-top-row">
-                        <div class="bairro-name-title">📍 {safe_title(b)}</div>
-                        <div class="bairro-chips-inline">
-                            <span class="chip chip-blue">👥 {vol_apoiadores} Apoiador(es)</span>
-                            <span class="chip chip-amber">⭐ {vol_lideres} Líder(es)</span>
-                            <span class="chip chip-green">🚗 {vol_veiculos} Veículo(s)</span>
-                        </div>
-                    </div>
+            # VISUAL EMBUTIDO DIRETO NO HEADER DO EXPANDER
+            expander_bairro_header = f"""
+            <div class="bairro-top-inline">
+                <div style="font-size:1.05rem; font-weight:800; color:{NAVY}; font-family:'Plus Jakarta Sans', sans-serif;">📍 {safe_title(b)}</div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <span class="chip chip-blue">👥 {vol_apoiadores} Apoiador(es)</span>
+                    <span class="chip chip-amber">⭐ {vol_lideres} Líder(es)</span>
+                    <span class="chip chip-green">🚗 {vol_veiculos} Veículo(s)</span>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            </div>
+            """
 
-            with st.expander(f"📋 Ver lista de moradores cadastrados em {safe_title(b)}"):
+            with st.expander(expander_bairro_header):
                 for _, r in sub_df.iterrows():
                     render_person_card(r, exibir_dados_sensiveis)
     else:
@@ -967,7 +949,7 @@ if selected == "Perfil Demográfico":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 5: RELATÓRIOS & EXPORTAÇÃO
+# ABA 5: RELATÓRIOS & EXPORTAÇÃO (CORRIGIDO ERRO OPENPYXL)
 # ==========================================
 if selected == "Relatórios":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -975,7 +957,7 @@ if selected == "Relatórios":
         '''
         <div class="section-header-wrap">
             <div class="section-title">📥 Exportação de Relatórios e Dados</div>
-            <div class="section-subtitle">Baixe a base de dados tratada para análises e relatórios impressos.</div>
+            <div class="section-subtitle">Baixe a base de dados tratada para análises ou relatórios impressos.</div>
         </div>
         ''',
         unsafe_allow_html=True,
@@ -1006,27 +988,25 @@ if selected == "Relatórios":
 
     col_e1, col_e2 = st.columns(2)
 
+    # EXPORTAÇÃO CSV PADRÃO UTF-8 (ABRE DIRETAMENTE NO EXCEL)
     csv_data = df_export_final.to_csv(index=False).encode("utf-8-sig")
     with col_e1:
         st.download_button(
-            label="📄 Baixar Relatório em CSV",
+            label="📄 Baixar Relatório (CSV Padrão)",
             data=csv_data,
             file_name=f"Relatorio_Campanha_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv",
             use_container_width=True,
         )
 
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df_export_final.to_excel(writer, index=False, sheet_name="Base_Apoiadores")
-    excel_data = buffer.getvalue()
-
+    # EXPORTAÇÃO EXCEL-COMPATÍVEL VIA CSV COM PONTO E VÍRGULA
+    csv_excel_data = df_export_final.to_csv(index=False, sep=";").encode("utf-8-sig")
     with col_e2:
         st.download_button(
-            label="📊 Baixar Relatório em Excel (XLSX)",
-            data=excel_data,
-            file_name=f"Relatorio_Campanha_{datetime.now().strftime('%Y%m%d')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            label="📊 Baixar Relatório (Formatado para Excel)",
+            data=csv_excel_data,
+            file_name=f"Relatorio_Campanha_Excel_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
             use_container_width=True,
         )
 

@@ -235,11 +235,42 @@ def inject_css():
 
         .custom-card {{
             background: #FFFFFF;
-            border-radius: 18px;
-            padding: 14px 16px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+            border-radius: 16px;
+            padding: 12px 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
             border: 1px solid #E2E8F0;
             margin-bottom: 10px;
+        }}
+
+        /* CARD COMPACTO DE VEÍCULOS */
+        .vehicle-card {{
+            background: #FFFFFF;
+            border-radius: 14px;
+            padding: 10px 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            border: 1px solid #E2E8F0;
+            margin-bottom: 8px;
+        }}
+
+        .vehicle-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }}
+
+        .vehicle-title {{
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: {NAVY};
+            line-height: 1.2;
+        }}
+
+        .vehicle-sub {{
+            font-size: 0.75rem;
+            color: {MUTED};
+            font-weight: 600;
+            margin-top: 2px;
         }}
 
         /* LINHA DE EMBLEMAS/CHIPS COMPACTA E OBRIGATORIAMENTE EM 1 LINHA */
@@ -252,6 +283,11 @@ def inject_css():
             margin-top: 8px;
             width: 100%;
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }}
+
+        .chips-inline-container::-webkit-scrollbar {{
+            display: none;
         }}
 
         .chip {{
@@ -259,9 +295,9 @@ def inject_css():
             align-items: center;
             justify-content: center;
             gap: 4px;
-            padding: 4px 8px;
-            border-radius: 16px;
-            font-size: 0.74rem;
+            padding: 3px 8px;
+            border-radius: 14px;
+            font-size: 0.7rem;
             font-weight: 700;
             white-space: nowrap;
             flex-shrink: 0;
@@ -289,31 +325,31 @@ def inject_css():
         .person-card {{
             border: 1px solid {BORDER};
             border-radius: 12px;
-            padding: 12px 14px;
+            padding: 10px 12px;
             margin-bottom: 8px;
             background: {CARD};
         }}
         .person-top {{
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
             gap: 8px;
         }}
-        @media (min-width: 550px) {{
-            .person-top {{ flex-direction: row; justify-content: space-between; align-items: center; }}
-        }}
-        .person-name {{ font-weight: 800; color: {NAVY}; font-size: 0.95rem; }}
+        .person-name {{ font-weight: 800; color: {NAVY}; font-size: 0.9rem; }}
         .wa-link {{
             text-decoration: none !important;
             background: linear-gradient(135deg, {GREEN} 0%, #227C55 100%);
             color: #FFFFFF !important;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 800;
-            padding: 6px 12px;
-            border-radius: 10px;
+            padding: 4px 10px;
+            border-radius: 8px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 4px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }}
 
         .ficha-grid {{
@@ -720,7 +756,7 @@ selected = option_menu(
 )
 
 # ==========================================
-# ABA 1: LIDERANÇA (COM PAGINAÇÃO & CARDS COMPACTOS)
+# ABA 1: LIDERANÇA
 # ==========================================
 if selected == "Liderança":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -743,7 +779,6 @@ if selected == "Liderança":
             .reset_index(drop=True)
         )
 
-        # PAGINAÇÃO (20 por página)
         ITENS_POR_PAGINA = 20
         total_lideres = len(df_lideres)
         total_paginas = math.ceil(total_lideres / ITENS_POR_PAGINA) if total_lideres > 0 else 1
@@ -766,7 +801,6 @@ if selected == "Liderança":
             total_ind = row['Total']
             pct = (total_ind / total_cadastros * 100) if total_cadastros else 0
 
-            # Badge/Ícone de colocação
             if posicao == 1:
                 badge = "🥇"
             elif posicao == 2:
@@ -810,7 +844,7 @@ if selected == "Liderança":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 2: BAIRROS (GRÁFICO TOP 15 & ALINHAMENTO EM 1 LINHA)
+# ABA 2: BAIRROS
 # ==========================================
 if selected == "Bairros":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -839,7 +873,6 @@ if selected == "Bairros":
             .reset_index(drop=True)
         )
 
-        # GRÁFICO TOP 15 BAIRROS
         st.markdown("<h4 style='font-size:0.95rem; font-weight:800; color:#071A2D; margin-bottom:10px;'>🔥 Top 15 Bairros com Mais Apoiadores</h4>", unsafe_allow_html=True)
         df_top15 = bairros_summary.head(15).copy()
         df_top15["Bairro_Fmt"] = df_top15["BAIRRO_PADRAO"].apply(safe_title)
@@ -921,7 +954,7 @@ if selected == "Bairros":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 3: VEÍCULOS
+# ABA 3: VEÍCULOS (COMPACTO & WHATSAPP AO LADO DIREITO)
 # ==========================================
 if selected == "Veículos":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -953,8 +986,7 @@ if selected == "Veículos":
                 | df_veic_exibir["NOME_PADRAO"].str.upper().str.contains(termo, na=False)
             ]
 
-        cols_veic = st.columns(2)
-        for idx, (_, r) in enumerate(df_veic_exibir.iterrows()):
+        for _, r in df_veic_exibir.iterrows():
             nome = safe_title(r.get("NOME_PADRAO", "—"))
             bairro = safe_title(r.get("BAIRRO_PADRAO", ""))
             lider = safe_title(r.get("LIDER_PADRAO", ""))
@@ -964,27 +996,26 @@ if selected == "Veículos":
             partes = parse_veiculo(r.get("VEICULO_INFO_PADRAO", ""))
             veiculo_titulo = partes["modelo"] or "Veículo"
 
-            with cols_veic[idx % 2]:
-                st.markdown(
-                    f"""
-                    <div class="person-card">
-                        <div style="display:flex; justify-space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
-                            <div>
-                                <div style="font-weight:800; font-size:1rem; color:{NAVY};">🚗 {veiculo_titulo}</div>
-                                <div style="font-size:0.85rem; color:{MUTED}; font-weight:600;">Motorista: {nome}</div>
-                            </div>
-                            {wa}
+            st.markdown(
+                f"""
+                <div class="vehicle-card">
+                    <div class="vehicle-header">
+                        <div>
+                            <div class="vehicle-title">🚗 {veiculo_titulo}</div>
+                            <div class="vehicle-sub">Motorista: {nome}</div>
                         </div>
-                        <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
-                            <span class="chip chip-muted">📍 {bairro}</span>
-                            <span class="chip chip-blue">⭐ Líder: {lider}</span>
-                            {f'<span class="chip chip-amber">🎨 {partes["cor"]}</span>' if partes["cor"] else ''}
-                            {f'<span class="chip chip-muted">🔖 {partes["placa"]}</span>' if partes["placa"] else ''}
-                        </div>
+                        {wa}
                     </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                    <div class="chips-inline-container">
+                        {f'<span class="chip chip-muted">📍 {bairro}</span>' if bairro else ''}
+                        {f'<span class="chip chip-blue">⭐ Líder: {lider}</span>' if lider else ''}
+                        {f'<span class="chip chip-amber">🎨 {partes["cor"]}</span>' if partes["cor"] else ''}
+                        {f'<span class="chip chip-muted">🔖 {partes["placa"]}</span>' if partes["placa"] else ''}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     else:
         st.info("Nenhum apoiador com veículo registrado.")
     st.markdown('</div>', unsafe_allow_html=True)

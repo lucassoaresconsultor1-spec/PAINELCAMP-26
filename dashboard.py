@@ -208,14 +208,33 @@ def inject_css():
             font-weight: 500;
         }}
 
-        /* CHIPS */
+        /* CARDS PADRÃO IMAGEM 2 E 3 */
+        .custom-card {{
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 18px 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid #E2E8F0;
+            margin-bottom: 12px;
+        }}
+
+        /* LINHA DE EMBLEMAS/CHIPS COMPACTA NA MESMA LINHA */
+        .chips-inline-container {{
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }}
+
+        /* CHIPS ESTILIZADOS COMO NA IMAGEM 3 */
         .chip {{
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
+            gap: 5px;
+            padding: 6px 14px;
             border-radius: 20px;
-            font-size: 0.75rem;
+            font-size: 0.82rem;
             font-weight: 700;
             white-space: nowrap;
         }}
@@ -223,6 +242,20 @@ def inject_css():
         .chip-amber {{ background: #FEF3D6; color: #B47818; border: 1px solid rgba(240, 166, 41, 0.25); }}
         .chip-green {{ background: #E8F5E9; color: {GREEN}; border: 1px solid rgba(46, 158, 109, 0.2); }}
         .chip-muted {{ background: #F1F5F9; color: {MUTED}; border: 1px solid {BORDER}; }}
+
+        /* PROGRESS BAR CUSTOMIZADA IMAGEM 2 */
+        .custom-progress-bg {{
+            background-color: #E2E8F0;
+            border-radius: 10px;
+            height: 8px;
+            width: 100%;
+            overflow: hidden;
+        }}
+        .custom-progress-fill {{
+            background-color: #F0A629;
+            height: 100%;
+            border-radius: 10px;
+        }}
 
         /* FICHA DO APOIADOR */
         .person-card {{
@@ -659,7 +692,7 @@ selected = option_menu(
 )
 
 # ==========================================
-# ABA 1: LIDERANÇA
+# ABA 1: LIDERANÇA (RETORNADO AO PADRÃO DA IMAGEM 2)
 # ==========================================
 if selected == "Liderança":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -684,33 +717,44 @@ if selected == "Liderança":
 
         for i, row in df_lideres.iterrows():
             rank = i + 1
-            medalha = "🥇" if rank == 1 else ("🥈" if rank == 2 else ("🥉" if rank == 3 else f"#{rank}"))
             lider_nome = safe_title(row['Líder'])
             total_ind = row['Total']
             pct = (total_ind / total_cadastros * 100) if total_cadastros else 0
 
-            with st.container():
-                col_m1, col_m2 = st.columns([3, 1])
-                with col_m1:
-                    st.markdown(f"### {medalha} {lider_nome}")
-                with col_m2:
-                    st.markdown(f"<h3 style='text-align: right; color: #071A2D;'>{total_ind}</h3>", unsafe_allow_html=True)
-                
-                st.progress(pct / 100)
-                st.caption(f"{pct:.1f}% da base total")
+            # Card Estilizado Visualmente (Padrão Imagem 2)
+            st.markdown(
+                f"""
+                <div class="custom-card">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="background: #FEF3D6; border-radius: 12px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🥇</div>
+                            <div style="font-size: 1.15rem; font-weight: 800; color: #071A2D;">{lider_nome}</div>
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: 800; color: #071A2D;">{total_ind}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="custom-progress-bg">
+                            <div class="custom-progress-fill" style="width: {pct}%;"></div>
+                        </div>
+                        <div style="font-size: 0.8rem; font-weight: 700; color: #728096; white-space: nowrap;">{pct:.1f}% da base</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-                with st.expander(f"🔎 Ver {total_ind} indicados de {lider_nome}"):
-                    indicados = df_clean_lider[df_clean_lider["LIDER_PADRAO"] == row['Líder']]
-                    for _, r in indicados.iterrows():
-                        render_person_card(r, exibir_dados_sensiveis)
-            
-            st.divider()
+            # Expander do Streamlit com texto simples para evitar erro
+            with st.expander(f"👥 Ver {total_ind} pessoas indicadas por {lider_nome}"):
+                indicados = df_clean_lider[df_clean_lider["LIDER_PADRAO"] == row['Líder']]
+                for _, r in indicados.iterrows():
+                    render_person_card(r, exibir_dados_sensiveis)
+
     else:
         st.info("Nenhum dado de liderança encontrado na planilha.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 2: BAIRROS
+# ABA 2: BAIRROS (ALINHADOS APOIADOR, LÍDER E VEÍCULOS NA MESMA LINHA)
 # ==========================================
 if selected == "Bairros":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -760,19 +804,28 @@ if selected == "Bairros":
             vol_lideres = info_bairro["Lideres_Distintos"].values[0] if not info_bairro.empty else 0
             vol_veiculos = info_bairro["Veiculos"].values[0] if not info_bairro.empty else 0
 
-            with st.container():
-                st.markdown(f"#### 📍 {safe_title(b)}")
-                
-                c_chip1, c_chip2, c_chip3 = st.columns(3)
-                c_chip1.caption(f"👥 **{vol_apoiadores}** Apoiador(es)")
-                c_chip2.caption(f"⭐ **{vol_lideres}** Líder(es)")
-                c_chip3.caption(f"🚗 **{vol_veiculos}** Veículo(s)")
+            # Card Estilizado com os chips na MESMA LINHA para diminuir o tamanho do card
+            st.markdown(
+                f"""
+                <div class="custom-card">
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #071A2D; display: flex; align-items: center; gap: 6px;">
+                        📍 {safe_title(b)}
+                    </div>
+                    <div class="chips-inline-container">
+                        <span class="chip chip-blue">👥 {vol_apoiadores} Apoiador(es)</span>
+                        <span class="chip chip-amber">⭐ {vol_lideres} Líder(es)</span>
+                        <span class="chip chip-green">🚗 {vol_veiculos} Veículo(s)</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-                with st.expander(f"🔎 Ver moradores do bairro {safe_title(b)}"):
-                    for _, r in sub_df.iterrows():
-                        render_person_card(r, exibir_dados_sensiveis)
+            # Expander do Streamlit limpo abaixo do card
+            with st.expander(f"📋 Ver lista de moradores cadastrados em {safe_title(b)}"):
+                for _, r in sub_df.iterrows():
+                    render_person_card(r, exibir_dados_sensiveis)
 
-            st.divider()
     else:
         st.info("Coluna de bairro não encontrada na planilha.")
     st.markdown('</div>', unsafe_allow_html=True)

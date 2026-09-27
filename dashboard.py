@@ -729,7 +729,7 @@ selected = option_menu(
 )
 
 # ==========================================
-# ABA 1: LIDERANÇA (CARD ÚNICO E CLICÁVEL COM BARRA DE PROGRESSO)
+# ABA 1: LIDERANÇA (CARD ÚNICO E CLICÁVEL)
 # ==========================================
 if selected == "Liderança":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -759,7 +759,6 @@ if selected == "Liderança":
             total_ind = row['Total']
             pct = (total_ind / total_cadastros * 100) if total_cadastros else 0
 
-            # VISUAL EMBUTIDO DIRETO NO HEADER DO EXPANDER
             expander_header = f"""
             <div class="lider-expander-wrap">
                 <div class="lider-header-row">
@@ -782,7 +781,7 @@ if selected == "Liderança":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 2: BAIRROS (CARD ÚNICO E CLICÁVEL COM PÍLULAS INLINE)
+# ABA 2: BAIRROS (CARD ÚNICO E CLICÁVEL)
 # ==========================================
 if selected == "Bairros":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -832,7 +831,6 @@ if selected == "Bairros":
             vol_lideres = info_bairro["Lideres_Distintos"].values[0] if not info_bairro.empty else 0
             vol_veiculos = info_bairro["Veiculos"].values[0] if not info_bairro.empty else 0
 
-            # VISUAL EMBUTIDO DIRETO NO HEADER DO EXPANDER
             expander_bairro_header = f"""
             <div class="bairro-top-inline">
                 <div style="font-size:1.05rem; font-weight:800; color:{NAVY}; font-family:'Plus Jakarta Sans', sans-serif;">📍 {safe_title(b)}</div>
@@ -949,7 +947,7 @@ if selected == "Perfil Demográfico":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 5: RELATÓRIOS & EXPORTAÇÃO (CORRIGIDO ERRO OPENPYXL)
+# ABA 5: RELATÓRIOS & EXPORTAÇÃO (EXCEL & CSV)
 # ==========================================
 if selected == "Relatórios":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -988,24 +986,28 @@ if selected == "Relatórios":
 
     col_e1, col_e2 = st.columns(2)
 
-    # EXPORTAÇÃO CSV PADRÃO UTF-8 (ABRE DIRETAMENTE NO EXCEL)
-    csv_data = df_export_final.to_csv(index=False).encode("utf-8-sig")
+    # EXPORTAÇÃO EXCEL (.XLSX) VIA OPENPYXL
+    buffer_excel = io.BytesIO()
+    with pd.ExcelWriter(buffer_excel, engine="openpyxl") as writer:
+        df_export_final.to_excel(writer, index=False, sheet_name="Apoiadores")
+    excel_data = buffer_excel.getvalue()
+
     with col_e1:
         st.download_button(
-            label="📄 Baixar Relatório (CSV Padrão)",
-            data=csv_data,
-            file_name=f"Relatorio_Campanha_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv",
+            label="📊 Baixar Relatório em Excel (.xlsx)",
+            data=excel_data,
+            file_name=f"Relatorio_Campanha_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
         )
 
-    # EXPORTAÇÃO EXCEL-COMPATÍVEL VIA CSV COM PONTO E VÍRGULA
-    csv_excel_data = df_export_final.to_csv(index=False, sep=";").encode("utf-8-sig")
+    # EXPORTAÇÃO CSV PADRÃO UTF-8
+    csv_data = df_export_final.to_csv(index=False).encode("utf-8-sig")
     with col_e2:
         st.download_button(
-            label="📊 Baixar Relatório (Formatado para Excel)",
-            data=csv_excel_data,
-            file_name=f"Relatorio_Campanha_Excel_{datetime.now().strftime('%Y%m%d')}.csv",
+            label="📄 Baixar Relatório em CSV",
+            data=csv_data,
+            file_name=f"Relatorio_Campanha_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv",
             use_container_width=True,
         )

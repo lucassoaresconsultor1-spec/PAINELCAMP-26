@@ -208,25 +208,81 @@ def inject_css():
             font-weight: 500;
         }}
 
-        /* CARD DE BAIRROS COMPACTO (TUDO EM UMA LINHA) */
-        .bairro-header-compact {{
+        /* CARDS ESTILIZADOS PARA LÍDERES E BAIRROS */
+        .lider-card {{
+            background: {CARD};
+            border: 1px solid {BORDER};
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-top: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }}
+        .lider-header {{
             display: flex;
             align-items: center;
             justify-content: space-between;
-            width: 100%;
-            gap: 12px;
-            flex-wrap: wrap;
+            margin-bottom: 10px;
         }}
-        .bairro-title {{
-            font-size: 1rem;
+        .lider-title {{
+            font-size: 1.1rem;
             font-weight: 800;
             color: {NAVY};
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
         }}
-        .bairro-chips-row {{
-            display: inline-flex;
+        .lider-total {{
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: {NAVY};
+        }}
+
+        .progress-bg {{
+            background: #EBF1F7;
+            border-radius: 10px;
+            height: 10px;
+            width: 100%;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }}
+        .progress-fill {{
+            background: linear-gradient(90deg, {AMBER} 0%, #D9822B 100%);
+            height: 100%;
+            border-radius: 10px;
+        }}
+        .progress-text {{
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: {MUTED};
+            text-align: right;
+        }}
+
+        /* CARD DE BAIRRO RESTRUTURADO COMPACTO */
+        .bairro-card {{
+            background: {CARD};
+            border: 1px solid {BORDER};
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-top: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }}
+        .bairro-top-row {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }}
+        .bairro-name-title {{
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: {NAVY};
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .bairro-chips-inline {{
+            display: flex;
             align-items: center;
             gap: 6px;
             flex-wrap: wrap;
@@ -236,9 +292,9 @@ def inject_css():
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 3px 8px;
+            padding: 4px 10px;
             border-radius: 20px;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 700;
             white-space: nowrap;
         }}
@@ -247,7 +303,7 @@ def inject_css():
         .chip-green {{ background: #E8F5E9; color: {GREEN}; border: 1px solid rgba(46, 158, 109, 0.2); }}
         .chip-muted {{ background: #F1F5F9; color: {MUTED}; border: 1px solid {BORDER}; }}
 
-        /* CARD DE PESSOA / FICHA */
+        /* FICHA DO APOIADOR */
         .person-card {{
             border: 1px solid {BORDER};
             border-radius: 12px;
@@ -547,14 +603,12 @@ def render_ficha_completa(r, exibir_dados_sensiveis: bool):
     idade_txt = f"{int(idade)} anos" if pd.notna(idade) else "—"
     mae = safe_title(r.get("MAE_PADRAO", "")) or "—"
 
-    # TÍTULO DE ELEITOR COM MASCARAMENTO
     titulo_raw = str(r.get("TITULO_PADRAO", "")).strip()
     if not titulo_raw or titulo_raw.upper() in ["NAN", "NONE", "NAO", "NÃO", "0", "-"]:
         titulo_txt = "—"
     else:
         titulo_txt = titulo_raw if exibir_dados_sensiveis else mask_titulo(titulo_raw)
 
-    # CPF COM MASCARAMENTO
     cpf_raw = str(r.get("CPF_PADRAO", "")).strip()
     if not cpf_raw or cpf_raw.upper() in ["NAN", "NONE", "NAO", "NÃO", "0", "-"]:
         cpf_txt = "—"
@@ -684,7 +738,7 @@ selected = option_menu(
 )
 
 # ==========================================
-# ABA 1: LIDERANÇA
+# ABA 1: LIDERANÇA (RESTAUROU BARRA E CARD BONITO)
 # ==========================================
 if selected == "Liderança":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -692,7 +746,7 @@ if selected == "Liderança":
         '''
         <div class="section-header-wrap">
             <div class="section-title">🏆 Leaderboard de Lideranças</div>
-            <div class="section-subtitle">Ranking de captação de eleitores. Abra cada líder para visualizar sua lista de indicados.</div>
+            <div class="section-subtitle">Ranking de captação de eleitores. Expanda o card para ver os indicados.</div>
         </div>
         ''',
         unsafe_allow_html=True,
@@ -709,14 +763,30 @@ if selected == "Liderança":
 
         for i, row in df_lideres.iterrows():
             rank = i + 1
-            badge = "🥇" if rank == 1 else ("🥈" if rank == 2 else ("🥉" if rank == 3 else f"#{rank}"))
+            medalha = "🥇" if rank == 1 else ("🥈" if rank == 2 else ("🥉" if rank == 3 else f"#{rank}"))
             lider_nome = safe_title(row['Líder'])
             total_ind = row['Total']
             pct = (total_ind / total_cadastros * 100) if total_cadastros else 0
 
-            # EXPANDER JUNTO À BARRA DO LÍDER
-            titulo_expander = f"{badge}  {lider_nome}  —  {total_ind} indicado(s) ({pct:.1f}% da base)"
-            with st.expander(titulo_expander):
+            # CARD COMPLETO COM BARRA DE PROGRESSO RESTAURADA
+            st.markdown(
+                f"""
+                <div class="lider-card">
+                    <div class="lider-header">
+                        <div class="lider-title"><span>{medalha}</span> {lider_nome}</div>
+                        <div class="lider-total">{total_ind}</div>
+                    </div>
+                    <div class="progress-bg">
+                        <div class="progress-fill" style="width: {pct:.1f}%;"></div>
+                    </div>
+                    <div class="progress-text">{pct:.1f}% da base total</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # EXPANDER DE INDICADOS
+            with st.expander(f"👥 Ver {total_ind} pessoa(s) indicada(s) por {lider_nome}"):
                 indicados = df_clean_lider[df_clean_lider["LIDER_PADRAO"] == row['Líder']]
                 for _, r in indicados.iterrows():
                     render_person_card(r, exibir_dados_sensiveis)
@@ -725,7 +795,7 @@ if selected == "Liderança":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 2: BAIRROS (CARD COMPACTO E EXPANDER JUNTO)
+# ABA 2: BAIRROS (RESTAUROU CARD COM PÍLULAS BONITAS)
 # ==========================================
 if selected == "Bairros":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -763,8 +833,6 @@ if selected == "Bairros":
 
         bairros_para_exibir = [bairro_sel] if bairro_sel != "Todos os Bairros" else list(bairros_summary["BAIRRO_PADRAO"])
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
         for b in bairros_para_exibir:
             sub_df = df_bairros_validos[df_bairros_validos["BAIRRO_PADRAO"] == b]
             if busca_nome:
@@ -777,15 +845,24 @@ if selected == "Bairros":
             vol_lideres = info_bairro["Lideres_Distintos"].values[0] if not info_bairro.empty else 0
             vol_veiculos = info_bairro["Veiculos"].values[0] if not info_bairro.empty else 0
 
-            # EXPANDER INTEGRADO COM CHIPS EM LINHA ÚNICA E CARD MENOR
-            label_bairro = (
-                f"📍 {safe_title(b)}   |   "
-                f"👥 {vol_apoiadores} Apoiador(es)   ·   "
-                f"⭐ {vol_lideres} Líder(es)   ·   "
-                f"🚗 {vol_veiculos} Veículo(s)"
+            # CARD ESTILIZADO DE BAIRRO COM PÍLULAS/CHIPS E EXPANDER EMBUTIDO
+            st.markdown(
+                f"""
+                <div class="bairro-card">
+                    <div class="bairro-top-row">
+                        <div class="bairro-name-title">📍 {safe_title(b)}</div>
+                        <div class="bairro-chips-inline">
+                            <span class="chip chip-blue">👥 {vol_apoiadores} Apoiador(es)</span>
+                            <span class="chip chip-amber">⭐ {vol_lideres} Líder(es)</span>
+                            <span class="chip chip-green">🚗 {vol_veiculos} Veículo(s)</span>
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
-            with st.expander(label_bairro):
+            with st.expander(f"📋 Ver lista de moradores cadastrados em {safe_title(b)}"):
                 for _, r in sub_df.iterrows():
                     render_person_card(r, exibir_dados_sensiveis)
     else:
@@ -890,7 +967,7 @@ if selected == "Perfil Demográfico":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 5: RELATÓRIOS & EXPORTAÇÃO (NOVA FUNCIONALIDADE)
+# ABA 5: RELATÓRIOS & EXPORTAÇÃO
 # ==========================================
 if selected == "Relatórios":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -906,14 +983,12 @@ if selected == "Relatórios":
 
     df_export = df.copy()
 
-    # Aplicação de mascaramento se a opção não estiver marcada
     if not exibir_dados_sensiveis:
         if "CPF_PADRAO" in df_export.columns:
             df_export["CPF_PADRAO"] = df_export["CPF_PADRAO"].apply(mask_cpf)
         if "TITULO_PADRAO" in df_export.columns:
             df_export["TITULO_PADRAO"] = df_export["TITULO_PADRAO"].apply(mask_titulo)
 
-    # Renomeação amigável para exportação
     colunas_export = {
         "NOME_PADRAO": "Nome do Apoiador",
         "LIDER_PADRAO": "Liderança / Indicação",
@@ -931,7 +1006,6 @@ if selected == "Relatórios":
 
     col_e1, col_e2 = st.columns(2)
 
-    # Exportar para CSV
     csv_data = df_export_final.to_csv(index=False).encode("utf-8-sig")
     with col_e1:
         st.download_button(
@@ -942,7 +1016,6 @@ if selected == "Relatórios":
             use_container_width=True,
         )
 
-    # Exportar para Excel
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df_export_final.to_excel(writer, index=False, sheet_name="Base_Apoiadores")

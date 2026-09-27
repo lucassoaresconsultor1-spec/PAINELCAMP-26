@@ -34,7 +34,8 @@ BORDER = "#E6EBF2"
 
 PLOTLY_FONT = "Manrope, sans-serif"
 
-SENHA_PADRAO = "BEBETO123"
+# 1. ALTERAÇÃO DE SENHA SOLICITADA
+SENHA_PADRAO = "Araruama321@"
 
 DATA_ELEICAO = date(2026, 10, 4)
 
@@ -408,17 +409,47 @@ def inject_css():
             .rank-count .p {{ font-size: 0.76rem; }}
         }}
 
+        /* CARDS DE BAIRROS ATUALIZADOS E REDESENHADOS */
+        .bairro-card-redesigned {{
+            background: #FFFFFF;
+            border: 1px solid {BORDER};
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 16px rgba(7, 26, 45, 0.03);
+            transition: all 0.25s ease;
+        }}
+        .bairro-card-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }}
+        .bairro-title-text {{
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: {NAVY};
+        }}
+        .bairro-stats-pills {{
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }}
+
         .chip {{
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 3px 8px;
+            padding: 4px 10px;
             border-radius: 30px;
-            font-size: 0.7rem;
+            font-size: 0.72rem;
             font-weight: 700;
         }}
         @media (min-width: 768px) {{
-            .chip {{ gap: 5px; padding: 4px 12px; font-size: 0.76rem; }}
+            .chip {{ gap: 5px; padding: 5px 12px; font-size: 0.78rem; }}
         }}
         .chip-blue {{ background: #EBF3FA; color: {BLUE}; border: 1px solid rgba(29, 95, 166, 0.15); }}
         .chip-green {{ background: #E8F5E9; color: {GREEN}; border: 1px solid rgba(46, 158, 109, 0.2); }}
@@ -504,33 +535,34 @@ def inject_css():
         }}
         .ficha-value {{ font-size: 0.86rem; font-weight: 700; color: {NAVY}; margin-top: 2px; }}
 
+        /* REDESIGN DA TELA DE LOGIN ACOMPANHANDO A IDENTIDADE VISUAL DO SISTEMA */
         .login-card {{
-            background: {CARD};
-            border: 1px solid {BORDER};
-            border-radius: 20px;
-            padding: 32px 20px;
-            max-width: 440px;
-            margin: 30px auto 0 auto;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(244, 246, 249, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 24px;
+            padding: 36px 24px;
+            max-width: 420px;
+            margin: 40px auto 0 auto;
             text-align: center;
-            box-shadow: 0 24px 48px rgba(7, 26, 45, 0.12);
+            box-shadow: 0 20px 50px rgba(7, 26, 45, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            animation: fadeInUp 0.45s ease-out;
         }}
         @media (min-width: 768px) {{
-            .login-card {{ border-radius: 24px; padding: 48px 36px; margin-top: 70px; }}
+            .login-card {{ border-radius: 28px; padding: 48px 40px; margin-top: 60px; }}
         }}
         .login-icon {{
-            width: 54px;
-            height: 54px;
-            background: linear-gradient(135deg, {NAVY} 0%, {NAVY_SOFT} 100%);
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, {NAVY} 0%, {BLUE} 100%);
             color: {AMBER};
-            border-radius: 16px;
+            border-radius: 20px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 16px;
-        }}
-        @media (min-width: 768px) {{
-            .login-icon {{ width: 64px; height: 64px; border-radius: 20px; font-size: 1.8rem; margin-bottom: 20px; }}
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(29, 95, 166, 0.3);
         }}
 
         div[data-testid="stButton"] button {{
@@ -540,6 +572,12 @@ def inject_css():
             font-weight: 700;
             border-radius: 12px;
             padding: 10px 18px;
+            box-shadow: 0 4px 12px rgba(29, 95, 166, 0.25);
+            transition: all 0.2s ease;
+        }}
+        div[data-testid="stButton"] button:hover {{
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(29, 95, 166, 0.35);
         }}
         </style>
         """,
@@ -708,21 +746,22 @@ def verificar_senha():
     if st.session_state.get("autenticado"):
         return
 
+    # TELA DE LOGIN ATUALIZADA SEGUINDO A IDENTIDADE VISUAL DO SISTEMA
     st.markdown(
         f"""
         <div class="login-card">
-            <div class="login-icon">🛡️</div>
+            <div class="login-icon">🗳️</div>
             <div style="color:{AMBER}; font-weight:800; font-size:0.75rem; letter-spacing:1.5px; text-transform:uppercase;">ACESSO EXCLUSIVO</div>
-            <h1 style="font-size:1.5rem; font-weight:800; color:{NAVY}; margin:8px 0 4px 0;">Campanha 2026</h1>
-            <p style="color:{MUTED}; font-size:0.85rem; margin-bottom:20px;">Insira a credencial de segurança para acessar o Centro de Comando de Campo.</p>
+            <h1 style="font-size:1.6rem; font-weight:800; color:{NAVY}; margin:10px 0 6px 0; letter-spacing:-0.5px;">Campanha 2026</h1>
+            <p style="color:{MUTED}; font-size:0.88rem; margin-bottom:24px; line-height:1.4;">Insira a senha credenciada para liberar o painel de controle do Centro de Comando.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
     col_a, col_b, col_c = st.columns([0.2, 1.6, 0.2])
     with col_b:
-        senha_digitada = st.text_input("Senha", type="password", label_visibility="collapsed", placeholder="Sua senha de acesso")
-        if st.button("Autenticar no Painel", use_container_width=True):
+        senha_digitada = st.text_input("Senha", type="password", label_visibility="collapsed", placeholder="Digite a senha de acesso...")
+        if st.button("Acessar Centro de Comando", use_container_width=True):
             if senha_digitada == senha_correta:
                 st.session_state.autenticado = True
                 st.rerun()
@@ -910,7 +949,7 @@ selected = option_menu(
 )
 
 # ==========================================
-# ABA 1: LIDERANÇA
+# ABA 1: LIDERANÇA (COM INTERATIVIDADE DE INDICADOS SOLICITADA)
 # ==========================================
 if selected == "Liderança":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -918,7 +957,7 @@ if selected == "Liderança":
         '''
         <div class="section-header-wrap">
             <div class="section-title">🏆 Leaderboard de Lideranças</div>
-            <div class="section-subtitle">Ranking de captação de eleitores por liderança</div>
+            <div class="section-subtitle">Ranking de captação de eleitores. Clique em um líder no ranking ou expande para ver os indicados.</div>
         </div>
         ''',
         unsafe_allow_html=True,
@@ -935,7 +974,7 @@ if selected == "Liderança":
         )
         maior_total = df_lideres["Total"].max() if not df_lideres.empty else 0
 
-        rows_html = ""
+        # Renderização interativa do Ranking
         for i, row in df_lideres.iterrows():
             rank = i + 1
             if rank == 1:
@@ -950,7 +989,8 @@ if selected == "Liderança":
             largura = (row["Total"] / maior_total * 100) if maior_total else 0
             cor_barra = "gold" if rank == 1 else ""
             pct_da_base = (row["Total"] / total_cadastros * 100) if total_cadastros else 0
-            rows_html += f"""
+
+            row_html = f"""
             <div class="rank-row">
                 <div class="rank-badge {badge_class}">{badge_icon}</div>
                 <div class="rank-info">
@@ -960,7 +1000,13 @@ if selected == "Liderança":
                 <div class="rank-count"><div class="n">{row['Total']}</div><div class="p">{pct_da_base:.1f}% da base</div></div>
             </div>
             """
-        st.markdown(rows_html, unsafe_allow_html=True)
+            st.markdown(row_html, unsafe_allow_html=True)
+            
+            # Expander de indicados direto no líder
+            with st.expander(f"👥 Ver {row['Total']} pessoas indicadas por {safe_title(row['Líder'])}"):
+                indicados = df_clean_lider[df_clean_lider["LIDER_PADRAO"] == row['Líder']]
+                for _, r in indicados.iterrows():
+                    render_person_card(r, mostrar_cpf)
     else:
         st.info("Nenhum dado de liderança encontrado na planilha.")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -999,13 +1045,13 @@ if selected == "Liderança":
         st.markdown(
             '''
             <div class="section-header-wrap">
-                <div class="section-title">🔍 Explorador por Líder</div>
-                <div class="section-subtitle">Veja todos os cadastros captados por uma liderança específica</div>
+                <div class="section-title">🔍 Explorador Avançado por Líder</div>
+                <div class="section-subtitle">Filtre a lista completa de pessoas indicadas</div>
             </div>
             ''',
             unsafe_allow_html=True,
         )
-        lider_sel = st.selectbox("Selecione a liderança", ["Todas as lideranças"] + list(df_lideres["Líder"]))
+        lider_sel = st.selectbox("Selecione a liderança para detalhamento", ["Todas as lideranças"] + list(df_lideres["Líder"]))
         df_lider_view = df_clean_lider.copy()
         if lider_sel != "Todas as lideranças":
             df_lider_view = df_lider_view[df_lider_view["LIDER_PADRAO"] == lider_sel]
@@ -1016,15 +1062,15 @@ if selected == "Liderança":
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 2: BAIRROS
+# ABA 2: BAIRROS (VISUAL MELHORADO E ORDEM DECRESCENTE)
 # ==========================================
 if selected == "Bairros":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
     st.markdown(
         '''
         <div class="section-header-wrap">
-            <div class="section-title">📍 Mapeamento por Bairro</div>
-            <div class="section-subtitle">Distribuição geográfica e cobertura de apoiadores</div>
+            <div class="section-title">📍 Mapeamento e Cobertura por Bairro</div>
+            <div class="section-subtitle">Bairros ordenados estritamente pelo maior volume de cadastros</div>
         </div>
         ''',
         unsafe_allow_html=True,
@@ -1033,6 +1079,7 @@ if selected == "Bairros":
     if "BAIRRO_PADRAO" in df.columns:
         df_bairros_validos = df[~df["BAIRRO_PADRAO"].isin(VALORES_VAZIOS)]
 
+        # ORDENAÇÃO DECRESCENTE GARANTIDA
         bairros_summary = (
             df_bairros_validos.groupby("BAIRRO_PADRAO")
             .agg(
@@ -1042,7 +1089,9 @@ if selected == "Bairros":
             )
             .reset_index()
             .sort_values(by="Total_Apoiadores", ascending=False)
+            .reset_index(drop=True)
         )
+
         fig_bairros = px.bar(
             bairros_summary.head(10),
             x="BAIRRO_PADRAO", y="Total_Apoiadores", text="Total_Apoiadores",
@@ -1055,45 +1104,66 @@ if selected == "Bairros":
         fig_bairros.update_layout(
             font_family=PLOTLY_FONT, font_color=TEXT,
             xaxis_title="", yaxis_title="",
+            xaxis={'categoryorder': 'total descending'},
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             margin=dict(l=0, r=0, t=20, b=10), height=280,
         )
         fig_bairros.update_yaxes(showgrid=True, gridcolor=BORDER)
 
-        st.markdown("<h4 style='font-size:0.95rem; font-weight:800; color:#071A2D; margin-bottom:8px;'>🔥 Top 10 Bairros</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='font-size:0.95rem; font-weight:800; color:#071A2D; margin-bottom:8px;'>🔥 Top Bairros com Maior Volume</h4>", unsafe_allow_html=True)
         st.plotly_chart(fig_bairros, use_container_width=True, config={"displayModeBar": False})
 
         st.markdown("<hr style='border:none; border-top:1px solid #E6EBF2; margin:18px 0;'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='font-size:0.95rem; font-weight:800; color:#071A2D; margin-bottom:8px;'>🔍 Explorador de Bairros</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='font-size:0.95rem; font-weight:800; color:#071A2D; margin-bottom:8px;'>🔍 Explorador de Bairros (Ordem Decrescente)</h4>", unsafe_allow_html=True)
 
         col_f1, col_f2 = st.columns([1, 1])
         with col_f1:
-            lista_bairros_select = ["Todos os Bairros"] + list(bairros_summary["BAIRRO_PADRAO"])
-            bairro_sel = st.selectbox("Filtrar visualização", lista_bairros_select)
+            lista_bairros_select = ["Todos os Bairros (Ordem de Cadastros)"] + list(bairros_summary["BAIRRO_PADRAO"])
+            bairro_sel = st.selectbox("Filtrar bairro específico", lista_bairros_select)
         with col_f2:
-            busca_nome = st.text_input("Buscar apoiador", placeholder="Digite um nome...")
+            busca_nome = st.text_input("Buscar apoiador por nome", placeholder="Digite um nome...")
 
         df_filtrado_bairros = df_bairros_validos.copy()
-        if bairro_sel != "Todos os Bairros":
-            df_filtrado_bairros = df_filtrado_bairros[df_filtrado_bairros["BAIRRO_PADRAO"] == bairro_sel]
+        if bairro_sel != "Todos os Bairros (Ordem de Cadastros)":
+            bairros_para_exibir = [bairro_sel]
+        else:
+            # Mantém a lista ordenada de forma decrescente pelo volume de cadastros
+            bairros_para_exibir = list(bairros_summary["BAIRRO_PADRAO"])
+
         if busca_nome and "NOME_PADRAO" in df_filtrado_bairros.columns:
             df_filtrado_bairros = df_filtrado_bairros[
                 df_filtrado_bairros["NOME_PADRAO"].str.upper().str.contains(busca_nome.upper(), na=False)
             ]
 
-        bairros_para_exibir = (
-            [bairro_sel] if bairro_sel != "Todos os Bairros"
-            else list(df_filtrado_bairros["BAIRRO_PADRAO"].unique())
-        )
-
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        # RENDERIZADOR DE CARDS DE BAIRROS REDESENHADOS COM MÉTRICAS
         for b in bairros_para_exibir:
-            if b in VALORES_VAZIOS:
-                continue
             sub_df = df_filtrado_bairros[df_filtrado_bairros["BAIRRO_PADRAO"] == b]
             if sub_df.empty:
                 continue
-            with st.expander(f"📍 {safe_title(b)} — {len(sub_df)} Apoiador(es)"):
+
+            info_bairro = bairros_summary[bairros_summary["BAIRRO_PADRAO"] == b]
+            vol_apoiadores = info_bairro["Total_Apoiadores"].values[0] if not info_bairro.empty else len(sub_df)
+            vol_lideres = info_bairro["Lideres_Distintos"].values[0] if not info_bairro.empty else 0
+            vol_veiculos = info_bairro["Veiculos"].values[0] if not info_bairro.empty else 0
+
+            # CARD REDESENHADO COM INDICADORES
+            bairro_card_html = f"""
+            <div class="bairro-card-redesigned">
+                <div class="bairro-card-header">
+                    <div class="bairro-title-text">📍 {safe_title(b)}</div>
+                    <div class="bairro-stats-pills">
+                        <span class="chip chip-blue">👥 {vol_apoiadores} Apoiador(es)</span>
+                        <span class="chip chip-amber">⭐ {vol_lideres} Líder(es)</span>
+                        <span class="chip chip-green">🚗 {vol_veiculos} Veículo(s)</span>
+                    </div>
+                </div>
+            </div>
+            """
+            st.markdown(bairro_card_html, unsafe_allow_html=True)
+            
+            with st.expander(f"📋 Ver lista de moradores cadastrados em {safe_title(b)}"):
                 for _, r in sub_df.iterrows():
                     render_person_card(r, mostrar_cpf)
     else:

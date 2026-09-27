@@ -1,6 +1,7 @@
 import io
 import math
 import re
+import unicodedata
 from datetime import date, datetime
 import sys
 
@@ -421,8 +422,28 @@ def inject_css():
 
 
 # =====================================================================
-# 3. TRATAMENTO E MASCARAMENTO DE DADOS SENSÍVEIS (CPF E TÍTULO)
+# 3. FUNÇÃO DE LIMPEZA DE TEXTO (CORREÇÃO DE DIGITAÇÃO E ACENTOS)
 # =====================================================================
+def limpar_texto(texto):
+    """
+    Remove acentos, caracteres especiais extras, múltiplos espaços
+    e padroniza tudo em maiúsculas para agrupar erros de digitação semelhantes.
+    Exemplo: 'Rio Do limao ' -> 'RIO DO LIMAO'
+             'Rio do Limão' -> 'RIO DO LIMAO'
+    """
+    if pd.isna(texto) or not str(texto).strip():
+        return ""
+    txt = str(texto).strip().upper()
+    if txt in ["NAN", "NONE", "NAO", "NÃO", "NAO POSSUI", "NÃO POSSUI", "NENHUM", "NEHUM", "0", "-", "NÃO INFORMADO"]:
+        return ""
+    # Remove acentuação
+    txt = unicodedata.normalize("NFD", txt)
+    txt = "".join(c for c in txt if unicodedata.category(c) != "Mn")
+    # Substitui múltiplos espaços por um único espaço
+    txt = re.sub(r"\s+", " ", txt)
+    return txt.strip()
+
+
 def safe_title(text):
     if pd.isna(text) or text is None:
         return ""
@@ -475,7 +496,7 @@ def whatsapp_link(contato: str) -> str:
 
 
 # =====================================================================
-# 4. CARREGAMENTO DOS DADOS
+# 4. CARREGAMENTO DOS DADOS (COM HIGIENIZAÇÃO DE TEXTO INTEGRADA)
 # =====================================================================
 URL_SHEETS = "https://docs.google.com/spreadsheets/d/17FGnNHegZTxubuE2B3bGNQcgiTT8i8EpqD6rOdmItVM/export?format=csv"
 
@@ -534,9 +555,10 @@ def carregar_dados():
 
     df = df.rename(columns=renomear)
 
+    # APLICA A HIGIENIZAÇÃO/PADRONIZAÇÃO DE DIGITAÇÃO NAS COLUNAS DE TEXTO
     for c in ["LIDER_PADRAO", "BAIRRO_PADRAO", "VEICULO_INFO_PADRAO"]:
         if c in df.columns:
-            df[c] = df[c].astype(str).str.strip().str.upper()
+            df[c] = df[c].apply(limpar_texto)
 
     for c in ["NOME_PADRAO", "MAE_PADRAO", "LOCAL_VOTACAO_PADRAO", "CONTATO_PADRAO", "TITULO_PADRAO", "CPF_PADRAO"]:
         if c in df.columns:
@@ -701,8 +723,8 @@ else:
     df_veiculos_filtro = pd.DataFrame()
 
 total_cadastros = len(df)
-lideres_ativos = df["LIDER_PADRAO"].replace(["NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"], np.nan).dropna().nunique() if "LIDER_PADRAO" in df.columns else 0
-bairros_cobertos = df["BAIRRO_PADRAO"].replace(["NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"], np.nan).dropna().nunique() if "BAIRRO_PADRAO" in df.columns else 0
+lideres_ativos = df["LIDER_PADRAO"].replace("", np.nan).dropna().nunique() if "LIDER_PADRAO" in df.columns else 0
+bairros_cobertos = df["BAIRRO_PADRAO"].replace("", np.nan).dropna().nunique() if "BAIRRO_PADRAO" in df.columns else 0
 veiculos_mapeados = len(df_veiculos_filtro)
 
 hoje_sp = datetime.now(FUSO_SP)
@@ -786,7 +808,7 @@ if selected == "Liderança":
     )
 
     if "LIDER_PADRAO" in df.columns and not df.empty:
-        df_clean_lider = df[~df["LIDER_PADRAO"].isin(["NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"])]
+        df_clean_lider = df[df["LIDER_PADRAO"] != ""]
         
         col_search_lider, col_pag = st.columns([1, 1])
         with col_search_lider:
@@ -872,7 +894,7 @@ if selected == "Liderança":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 2: BAIRROS
+# ABA 2: BAIRROS (DADOS TOTALMENTE SANITIZADOS)
 # ==========================================
 if selected == "Bairros":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -887,13 +909,13 @@ if selected == "Bairros":
     )
 
     if "BAIRRO_PADRAO" in df.columns:
-        df_bairros_validos = df[~df["BAIRRO_PADRAO"].isin(["NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"])]
+        df_bairros_validos = df[df["BAIRRO_PADRAO"] != ""]
 
         bairros_summary = (
             df_bairros_validos.groupby("BAIRRO_PADRAO")
             .agg(
                 Total_Apoiadores=("BAIRRO_PADRAO", "count"),
-                Lideres_Distintos=("LIDER_PADRAO", lambda x: len(set(x.dropna()) - {"NAN", "NONE", "NAO", "NÃO", "", "NÃO INFORMADO"})),
+                Lideres_Distintos=("LIDER_PADRAO", lambda x: len(set(x.replace("", np.nan).dropna()))),
                 Veiculos=("VEICULO_INFO_PADRAO", lambda x: len([v for v in x if veiculo_valido(v)])),
             )
             .reset_index()
@@ -999,7 +1021,7 @@ if selected == "Veículos":
     if not df_veiculos_filtro.empty:
         c_v1, c_v2 = st.columns([1, 1])
         with c_v1:
-            bairros_v_validos = sorted([safe_title(b) for b in df_veiculos_filtro["BAIRRO_PADRAO"].dropna().unique() if b not in ["NAN", "NONE", ""]])
+            bairros_v_validos = sorted([safe_title(b) for b in df_veiculos_filtro["BAIRRO_PADRAO"].dropna().unique() if b != ""])
             bairro_v_sel = st.selectbox("Filtrar por bairro", ["Todos os bairros"] + bairros_v_validos)
         with c_v2:
             busca_veiculo = st.text_input("Filtrar modelo/motorista", placeholder="Ex: Gol, Fiat...")
@@ -1093,10 +1115,7 @@ if selected == "Relatórios":
 
     df_export = df.copy()
 
-    # -------------------------------------------------------------
-    # IMPLEMENTAÇÃO: TRATAMENTO DE TEXTO E ORDENAÇÃO POR LIDERANÇA
-    # -------------------------------------------------------------
-    # 1. Tratamento e Sanitização dos Campos de Texto
+    # 1. Tratamento e Formatando Campos de Texto para visualização
     cols_para_formatar = {
         "NOME_PADRAO": "NOME_PADRAO",
         "LIDER_PADRAO": "LIDER_PADRAO",
@@ -1108,19 +1127,17 @@ if selected == "Relatórios":
         if col_key in df_export.columns:
             df_export[col_key] = df_export[col_key].apply(safe_title)
 
-    # 2. Ordenação por Líder com Mais Apoiadores (Decrescente)
+    # 2. ORDENAÇÃO DECRESCENTE POR VOLUME DO LÍDER (Apoiadores do maior líder primeiro)
     if "LIDER_PADRAO" in df_export.columns:
-        # Conta a quantidade total por liderança
         contagem_lideres = df_export["LIDER_PADRAO"].value_counts()
         df_export["TOTAL_LIDER"] = df_export["LIDER_PADRAO"].map(contagem_lideres).fillna(0)
         
-        # Ordena: 1º pelo volume total do líder (decrescente), 2º pelo nome do líder e 3º pelo nome do apoiador
         df_export = df_export.sort_values(
             by=["TOTAL_LIDER", "LIDER_PADRAO", "NOME_PADRAO"],
             ascending=[False, True, True]
         ).drop(columns=["TOTAL_LIDER"])
 
-    # 3. Tratamento dos dados sensíveis
+    # 3. Mascaramento opcional de dados sensíveis
     if not exibir_dados_sensiveis:
         if "CPF_PADRAO" in df_export.columns:
             df_export["CPF_PADRAO"] = df_export["CPF_PADRAO"].apply(mask_cpf)

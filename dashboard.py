@@ -35,6 +35,7 @@ NAVY_SOFT = "#123A63"
 BLUE = "#1D5FA6"
 AMBER = "#F0A629"
 GREEN = "#2E9E6D"
+RED = "#C0392B"
 BG = "#F4F6F9"
 CARD = "#FFFFFF"
 TEXT = "#16202A"
@@ -187,6 +188,9 @@ def inject_css():
             font-weight: 800;
             margin-top: 2px;
         }}
+        .kpi-card.kpi-alert::before {{
+            background: linear-gradient(90deg, {RED} 0%, {AMBER} 100%);
+        }}
 
         /* SEÇÃO CARD */
         .section-card {{
@@ -248,6 +252,28 @@ def inject_css():
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
             border: 1px solid #E2E8F0;
             margin-bottom: 10px;
+        }}
+
+        /* CARD DE GRUPO DUPLICADO */
+        .dup-card {{
+            background: #FFFFFF;
+            border-radius: 14px;
+            padding: 10px 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            border: 1px solid #F3D6D2;
+            border-left: 5px solid {RED};
+            margin-bottom: 8px;
+        }}
+        .dup-title {{
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: {NAVY};
+        }}
+        .dup-sub {{
+            font-size: 0.75rem;
+            color: {MUTED};
+            font-weight: 600;
+            margin-top: 2px;
         }}
 
         /* CARD COMPACTO DE VEÍCULOS */
@@ -313,6 +339,7 @@ def inject_css():
         .chip-blue {{ background: #EBF3FA; color: {BLUE}; border: 1px solid rgba(29, 95, 166, 0.15); }}
         .chip-amber {{ background: #FEF3D6; color: #B47818; border: 1px solid rgba(240, 166, 41, 0.25); }}
         .chip-green {{ background: #E8F5E9; color: {GREEN}; border: 1px solid rgba(46, 158, 109, 0.2); }}
+        .chip-red {{ background: #FDECEA; color: {RED}; border: 1px solid rgba(192, 57, 43, 0.25); }}
         .chip-muted {{ background: #F1F5F9; color: {MUTED}; border: 1px solid {BORDER}; }}
 
         /* PROGRESS BAR CUSTOMIZADA COMPACTA */
@@ -493,6 +520,41 @@ def whatsapp_link(contato: str) -> str:
     if not digitos.startswith("55"):
         digitos = "55" + digitos
     return f'<a class="wa-link" href="https://wa.me/{digitos}" target="_blank">💬 WhatsApp</a>'
+
+
+# =====================================================================
+# 3.1 FUNÇÕES DE DOCUMENTOS (CPF / TÍTULO) PARA DETECÇÃO DE DUPLICATAS
+# =====================================================================
+def normalizar_documento(valor, tamanho: int) -> str:
+    """
+    Retorna apenas os dígitos do documento (CPF=11, Título=12).
+    - Remove pontos, traços e espaços.
+    - Remove o '.0' que o pandas cria quando lê número como float.
+    - Recompõe zeros à esquerda perdidos na planilha.
+    - Retorna '' quando o campo está vazio ou inválido (ex.: só zeros).
+    """
+    if valor is None or pd.isna(valor):
+        return ""
+    txt = str(valor).strip()
+    txt = re.sub(r"\.0+$", "", txt)
+    digitos = re.sub(r"\D", "", txt)
+    if not digitos or set(digitos) == {"0"}:
+        return ""
+    if len(digitos) < tamanho:
+        digitos = digitos.zfill(tamanho)
+    return digitos
+
+
+def formatar_cpf(digitos: str) -> str:
+    if len(digitos) == 11:
+        return f"{digitos[:3]}.{digitos[3:6]}.{digitos[6:9]}-{digitos[9:]}"
+    return digitos
+
+
+def formatar_titulo(digitos: str) -> str:
+    if len(digitos) == 12:
+        return f"{digitos[:4]} {digitos[4:8]} {digitos[8:]}"
+    return digitos
 
 
 # =====================================================================
@@ -781,8 +843,8 @@ with col_toggle:
 # NAVEGAÇÃO
 selected = option_menu(
     menu_title=None,
-    options=["Liderança", "Bairros", "Veículos", "Perfil Demográfico", "Relatórios"],
-    icons=["people-fill", "geo-alt-fill", "car-front-fill", "bar-chart-fill", "download"],
+    options=["Liderança", "Bairros", "Veículos", "Perfil Demográfico", "Duplicatas", "Relatórios"],
+    icons=["people-fill", "geo-alt-fill", "car-front-fill", "bar-chart-fill", "exclamation-triangle-fill", "download"],
     orientation="horizontal",
     styles={
         "container": {"padding": "4px", "background-color": CARD, "border": f"1px solid {BORDER}", "border-radius": "14px", "margin-bottom": "18px"},
@@ -809,11 +871,11 @@ if selected == "Liderança":
 
     if "LIDER_PADRAO" in df.columns and not df.empty:
         df_clean_lider = df[df["LIDER_PADRAO"] != ""]
-        
+
         col_search_lider, col_pag = st.columns([1, 1])
         with col_search_lider:
             busca_lider = st.text_input("Buscar líder pelo nome", placeholder="Digite o nome do líder...")
-        
+
         df_lideres = (
             df_clean_lider["LIDER_PADRAO"].value_counts().reset_index()
             .rename(columns={"LIDER_PADRAO": "Líder", "count": "Total"})
@@ -1099,7 +1161,169 @@ if selected == "Perfil Demográfico":
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# ABA 5: RELATÓRIOS & EXPORTAÇÃO
+# ABA 5: DUPLICATAS (CPF / TÍTULO DE ELEITOR)
+# ==========================================
+if selected == "Duplicatas":
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown(
+        '''
+        <div class="section-header-wrap">
+            <div class="section-title">⚠️ Cadastros Duplicados</div>
+            <div class="section-subtitle">Pessoas cadastradas mais de uma vez com o mesmo CPF ou Título de Eleitor.</div>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
+    tem_cpf = "CPF_PADRAO" in df.columns
+    tem_titulo = "TITULO_PADRAO" in df.columns
+
+    if not tem_cpf and not tem_titulo:
+        st.info("Colunas de CPF e Título de Eleitor não encontradas na planilha.")
+    else:
+        df_dup = df.copy()
+        df_dup["CPF_NUM"] = df_dup["CPF_PADRAO"].apply(lambda v: normalizar_documento(v, 11)) if tem_cpf else ""
+        df_dup["TITULO_NUM"] = df_dup["TITULO_PADRAO"].apply(lambda v: normalizar_documento(v, 12)) if tem_titulo else ""
+
+        def achar_duplicados(coluna_num: str) -> pd.DataFrame:
+            validos = df_dup[df_dup[coluna_num] != ""]
+            return validos[validos.duplicated(subset=coluna_num, keep=False)]
+
+        dup_cpf = achar_duplicados("CPF_NUM") if tem_cpf else df_dup.iloc[0:0]
+        dup_tit = achar_duplicados("TITULO_NUM") if tem_titulo else df_dup.iloc[0:0]
+
+        grupos_cpf = dup_cpf["CPF_NUM"].nunique()
+        grupos_tit = dup_tit["TITULO_NUM"].nunique()
+        cadastros_envolvidos = len(set(dup_cpf.index) | set(dup_tit.index))
+
+        alerta_cls = "kpi-alert" if (grupos_cpf + grupos_tit) > 0 else ""
+        st.markdown(
+            f"""
+            <div class="kpi-grid">
+                <div class="kpi-card {alerta_cls}"><div class="kpi-label">CPFs Duplicados</div><div class="kpi-value">{grupos_cpf}</div></div>
+                <div class="kpi-card {alerta_cls}"><div class="kpi-label">Títulos Duplicados</div><div class="kpi-value">{grupos_tit}</div></div>
+                <div class="kpi-card {alerta_cls}"><div class="kpi-label">Cadastros Envolvidos</div><div class="kpi-value">{cadastros_envolvidos}</div></div>
+                <div class="kpi-card"><div class="kpi-label">Base Total</div><div class="kpi-value">{total_cadastros}</div></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if grupos_cpf + grupos_tit == 0:
+            st.success("✅ Nenhuma duplicidade de CPF ou Título de Eleitor encontrada na base.")
+        else:
+            c_d1, c_d2 = st.columns([1, 1])
+            with c_d1:
+                tipo_dup = st.selectbox("Tipo de duplicidade", ["Todos", "Somente CPF", "Somente Título"])
+            with c_d2:
+                busca_dup = st.text_input("Buscar por nome ou líder", placeholder="Digite para filtrar...", key="busca_dup")
+
+            # Monta a lista de grupos: (tipo, documento_numérico, DataFrame do grupo)
+            grupos = []
+            if tipo_dup in ("Todos", "Somente CPF") and grupos_cpf > 0:
+                for doc, sub in dup_cpf.groupby("CPF_NUM"):
+                    grupos.append(("CPF", doc, sub))
+            if tipo_dup in ("Todos", "Somente Título") and grupos_tit > 0:
+                for doc, sub in dup_tit.groupby("TITULO_NUM"):
+                    grupos.append(("Título", doc, sub))
+
+            # Filtro de busca (nome ou líder) — mantém o grupo se qualquer membro bater
+            if busca_dup:
+                termo_dup = limpar_texto(busca_dup)
+                grupos = [
+                    g for g in grupos
+                    if g[2]["NOME_PADRAO"].apply(limpar_texto).str.contains(termo_dup, na=False, regex=False).any()
+                    or g[2]["LIDER_PADRAO"].str.contains(termo_dup, na=False, regex=False).any()
+                ]
+
+            # Ordena: grupos maiores primeiro
+            grupos.sort(key=lambda g: (-len(g[2]), g[0], g[1]))
+
+            st.markdown(
+                f"<div style='color:{MUTED}; font-size:0.8rem; font-weight:600; margin-bottom:10px;'>{len(grupos)} grupo(s) de duplicidade encontrado(s)</div>",
+                unsafe_allow_html=True,
+            )
+
+            # Tabela para exportação (construída junto com a exibição)
+            linhas_export = []
+
+            for tipo, doc, sub in grupos:
+                if tipo == "CPF":
+                    doc_txt = formatar_cpf(doc) if exibir_dados_sensiveis else mask_cpf(doc)
+                else:
+                    doc_txt = formatar_titulo(doc) if exibir_dados_sensiveis else mask_titulo(doc)
+
+                qtd = len(sub)
+                lideres_grupo = sorted({safe_title(x) for x in sub["LIDER_PADRAO"] if x})
+                chip_lider = (
+                    f'<span class="chip chip-amber">⭐ {len(lideres_grupo)} Líder(es)</span>'
+                    if lideres_grupo else ""
+                )
+
+                st.markdown(
+                    f"""
+                    <div class="dup-card">
+                        <div class="dup-title">{'🪪' if tipo == 'CPF' else '🗳️'} {tipo}: {doc_txt}</div>
+                        <div class="chips-inline-container">
+                            <span class="chip chip-red">⚠️ {qtd} cadastros</span>
+                            {chip_lider}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                with st.expander(f"👥 Ver os {qtd} cadastros com este {tipo}"):
+                    for _, r in sub.iterrows():
+                        render_person_card(r, exibir_dados_sensiveis)
+
+                for _, r in sub.iterrows():
+                    linhas_export.append({
+                        "Tipo de Duplicidade": tipo,
+                        "Documento": doc_txt,
+                        "Qtd. no Grupo": qtd,
+                        "Nome": safe_title(r.get("NOME_PADRAO", "")),
+                        "Liderança / Indicação": safe_title(r.get("LIDER_PADRAO", "")),
+                        "Bairro": safe_title(r.get("BAIRRO_PADRAO", "")),
+                        "Telefone / WhatsApp": r.get("CONTATO_PADRAO", ""),
+                        "Data de Nascimento": r.get("NASCIMENTO_PADRAO", ""),
+                        "Data do Cadastro": r.get("TIMESTAMP_PADRAO", ""),
+                    })
+
+            # Exportação das duplicatas
+            if linhas_export:
+                df_dup_export = pd.DataFrame(linhas_export)
+
+                st.markdown("<hr style='margin:16px 0; border:0; border-top:1px solid #E6EBF2;'>", unsafe_allow_html=True)
+                st.markdown("<h4 style='font-size:0.95rem; font-weight:800; color:#071A2D;'>📥 Exportar duplicidades</h4>", unsafe_allow_html=True)
+
+                buffer_dup = io.BytesIO()
+                with pd.ExcelWriter(buffer_dup, engine="openpyxl") as writer:
+                    df_dup_export.to_excel(writer, index=False, sheet_name="Duplicatas")
+
+                col_x1, col_x2 = st.columns(2)
+                with col_x1:
+                    st.download_button(
+                        label="📊 Baixar Duplicatas (.xlsx)",
+                        data=buffer_dup.getvalue(),
+                        file_name=f"Duplicatas_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key="dl_dup_xlsx",
+                    )
+                with col_x2:
+                    st.download_button(
+                        label="📄 Baixar Duplicatas (.csv)",
+                        data=df_dup_export.to_csv(index=False).encode("utf-8-sig"),
+                        file_name=f"Duplicatas_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        key="dl_dup_csv",
+                    )
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ==========================================
+# ABA 6: RELATÓRIOS & EXPORTAÇÃO
 # ==========================================
 if selected == "Relatórios":
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -1131,7 +1355,7 @@ if selected == "Relatórios":
     if "LIDER_PADRAO" in df_export.columns:
         contagem_lideres = df_export["LIDER_PADRAO"].value_counts()
         df_export["TOTAL_LIDER"] = df_export["LIDER_PADRAO"].map(contagem_lideres).fillna(0)
-        
+
         df_export = df_export.sort_values(
             by=["TOTAL_LIDER", "LIDER_PADRAO", "NOME_PADRAO"],
             ascending=[False, True, True]
